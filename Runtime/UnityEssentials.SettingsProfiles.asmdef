@@ -1,5 +1,5 @@
 {
-    "name": "UnityEssentials.Systems.SettingsProfiles",
+    "name": "UnityEssentials.SettingsProfiles",
     "rootNamespace": "UnityEssentials",
     "references": [],
     "includePlatforms": [],
