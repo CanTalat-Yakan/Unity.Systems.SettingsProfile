@@ -26,7 +26,7 @@ Install the Unity Essentials entry package via Unity's Package Manager, then ins
 
 # Settings Profile
 
-> Quick overview: Lightweight, versioned settings profiles backed by JSON files. Use `SettingsProfile<T>` for strongly-typed settings, or `SettingsProfile`/`SettingsProfileBase` for flexible key/value storage.
+> Quick overview: Lightweight, versioned settings profiles backed by JSON files. Use `SettingsProfile<T>` for strongly-typed settings, or `SettingsProfile` for flexible key/value storage.
 
 This module provides a small settings system built on top of plain C# types.
 
