@@ -14,7 +14,7 @@ namespace UnityEssentials
         public static SettingsProfile Create(string profileName = "Default") =>
             new(profileName);
 
-        public static SettingsProfile<T> Create<T>(string profileName, Func<T> defaultsFactory = null) where T : new() =>
+        public static SettingsProfile<T> Create<T>(string profileName = "Default", Func<T> defaultsFactory = null) where T : new() =>
             new(profileName, defaultsFactory);
 
         public static SettingsProfileManager CreateManager(string profileName = "Default") =>
