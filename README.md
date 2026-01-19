@@ -52,7 +52,7 @@ This module provides a small settings system built on top of plain C# types.
 - Multiple profiles (pattern)
   - `SettingsProfileManager<T>` / `SettingsProfileManager` choose and cache named profiles and track a `CurrentProfileName`
 - Key/value style settings
-  - For `SettingsProfile` / `SettingsProfileBase` you can store arbitrary values by string key
+  - For `SettingsProfile` you can store arbitrary values by string key `Get<T>`, `Set<T>`
   - Helpers: `GetInt`, `GetBool`, `GetFloat`, `GetString`, `SetInt`, `SetBool`, `SetFloat`, `SetString`, etc.
 
 ## Requirements
@@ -169,7 +169,7 @@ public class GraphicsBoot : MonoBehaviour
 
     private void Awake()
     {
-        GraphicsManager.SetCurrentProfile("Player2", loadIfNeeded: true);
+        GraphicsManager.SetCurrentProfile("Player2");
         var profile = GraphicsManager.GetCurrentProfile();
 
         // Read

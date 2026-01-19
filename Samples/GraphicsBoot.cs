@@ -41,7 +41,7 @@ namespace UnityEssentials.Samples
 
         private static void UseTypedProfileManager()
         {
-            GraphicsManager.SetCurrentProfile("Player2", loadIfNeeded: true);
+            GraphicsManager.SetCurrentProfile("Player2");
             var profile = GraphicsManager.GetCurrentProfile();
             
             var msaa = profile.Value.msaa;
