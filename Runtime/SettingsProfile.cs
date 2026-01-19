@@ -3,6 +3,9 @@ using Newtonsoft.Json.Linq;
 
 namespace UnityEssentials
 {
+    [Serializable]
+    public class SettingsProfileBase : SerializedDictionary<string, JToken> { }
+
     public sealed class SettingsProfile : SettingsProfile<SettingsProfileBase>
     {
         public SettingsProfile(string profileName) : base(profileName, () => new SettingsProfileBase()) { }
@@ -118,11 +121,10 @@ namespace UnityEssentials
 
         public void Save()
         {
-            var v = Value; // ensure loaded
-            ApplyValidationAndMigration(v, null);
+            ApplyValidationAndMigration(Value, null);
 
-            var schema = (v is ISettingsVersioned sv) ? sv.SchemaVersion : 0;
-            var env = SettingsEnvelope<T>.Create(ProfileName, schema, v);
+            var schema = (Value is ISettingsVersioned sv) ? sv.SchemaVersion : 0;
+            var env = SettingsEnvelope<T>.Create(ProfileName, schema, Value);
 
             var json = SettingsJson.Serialize(env);
             SettingsJsonStore.WriteAllTextAtomic(_path, json);
@@ -167,16 +169,16 @@ namespace UnityEssentials
         private void HookChangeNotifications(T v)
         {
             if (v is SerializedDictionary<string, JToken> dict)
-                dict.OnValueChanged += HandleDictionaryValueChanged;
+                dict.OnChanged += HandleDictionaryChanged;
         }
 
         private void UnhookChangeNotifications(T v)
         {
             if (v is SerializedDictionary<string, JToken> dict)
-                dict.OnValueChanged -= HandleDictionaryValueChanged;
+                dict.OnChanged -= HandleDictionaryChanged;
         }
 
-        private void HandleDictionaryValueChanged(string _)
+        private void HandleDictionaryChanged(string _)
         {
             _dirty = true;
             OnChanged?.Invoke(_value);

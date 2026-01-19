@@ -63,7 +63,7 @@ namespace UnityEssentials.Samples
             profile.Value.SetFloat("master_volume", masterVolume);
 
             var key = "window_mode";
-            profile.Value.OnValueChanged += (key) => ApplyWindowMode(profile.Value.Get(key, 0));
+            profile.Value.OnChanged += (key) => ApplyWindowMode(profile.Value.Get(key, 0));
         }
 
         private static void UseValueProfileManager()
@@ -75,7 +75,7 @@ namespace UnityEssentials.Samples
             profile.Value.SetFloat("master_volume", volume);
             
             var key = "window_mode";
-            profile.Value.OnValueChanged += (key) => ApplyWindowMode(profile.Value.Get(key, 0));
+            profile.Value.OnChanged += (key) => ApplyWindowMode(profile.Value.Get(key, 0));
         }
 
         private void OnApplicationQuit()

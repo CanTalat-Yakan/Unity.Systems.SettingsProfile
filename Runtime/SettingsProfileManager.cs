@@ -4,7 +4,9 @@ using System.Collections.Generic;
 namespace UnityEssentials
 {
     /// <summary>
-    /// Tiny helper to manage multiple named <see cref="SettingsProfile"/> instances and a current selection.
+    /// Manages multiple named settings profiles and allows for the selection and manipulation
+    /// of the current profile. Provides utilities to retrieve, modify, and switch between profiles,
+    /// with enhancements for profile loading and creation.
     /// </summary>
     public sealed class SettingsProfileManager
     {
@@ -15,10 +17,10 @@ namespace UnityEssentials
         public SettingsProfileManager(string profileName) =>
             _base = new SettingsProfileManagerBase<SettingsProfile>(profileName, name => new SettingsProfile(name));
 
-        public SettingsProfile GetProfile(string profileName) => 
+        public SettingsProfile GetProfile(string profileName) =>
             _base.GetProfile(profileName);
 
-        public SettingsProfile GetCurrentProfile() => 
+        public SettingsProfile GetCurrentProfile() =>
             _base.GetCurrentProfile();
 
         public void SetCurrentProfile(string profileName, bool loadIfNeeded = true) =>
@@ -41,13 +43,14 @@ namespace UnityEssentials
         public SettingsProfileManager(string profileName, Func<T> defaultsFactory = null)
         {
             _defaultsFactory = defaultsFactory ?? (() => new T());
-            _base = new SettingsProfileManagerBase<SettingsProfile<T>>(profileName, name => new SettingsProfile<T>(name, _defaultsFactory));
+            _base = new SettingsProfileManagerBase<SettingsProfile<T>>(profileName,
+                name => new SettingsProfile<T>(name, _defaultsFactory));
         }
 
-        public SettingsProfile<T> GetProfile(string profileName) => 
+        public SettingsProfile<T> GetProfile(string profileName) =>
             _base.GetProfile(profileName);
 
-        public SettingsProfile<T> GetCurrentProfile() => 
+        public SettingsProfile<T> GetCurrentProfile() =>
             _base.GetCurrentProfile();
 
         public void SetCurrentProfile(string profileName, bool loadIfNeeded = true) =>
@@ -56,7 +59,7 @@ namespace UnityEssentials
                 loadIfNeeded,
                 p => p.GetValue());
     }
-    
+
     internal sealed class SettingsProfileManagerBase<TProfile>
     {
         public string CurrentProfileName { get; private set; }
@@ -67,33 +70,24 @@ namespace UnityEssentials
         public SettingsProfileManagerBase(string profileName, Func<string, TProfile> createProfile)
         {
             _createProfile = createProfile ?? throw new ArgumentNullException(nameof(createProfile));
-            CurrentProfileName = Sanitize(profileName);
+            CurrentProfileName = SettingsProfileCacheUtility.SanitizeName(profileName);
         }
 
         public TProfile GetProfile(string profileName)
         {
-            var name = Sanitize(profileName);
-
-            if (_profiles.TryGetValue(name, out var existing))
-                return existing;
-
-            var created = _createProfile(name);
-            _profiles[name] = created;
-            return created;
+            var name = SettingsProfileCacheUtility.SanitizeName(profileName);
+            return SettingsProfileCacheUtility.GetOrCreate(_profiles, name, () => _createProfile(name));
         }
 
-        public TProfile GetCurrentProfile() => 
+        public TProfile GetCurrentProfile() =>
             GetProfile(CurrentProfileName);
 
         public void SetCurrentProfile(string profileName, bool loadIfNeeded, Action<TProfile> loadIfNeededAction)
         {
-            CurrentProfileName = Sanitize(profileName);
+            CurrentProfileName = SettingsProfileCacheUtility.SanitizeName(profileName);
 
             if (loadIfNeeded)
                 loadIfNeededAction?.Invoke(GetCurrentProfile());
         }
-
-        private static string Sanitize(string name) =>
-            string.IsNullOrWhiteSpace(name) ? "Default" : name.Trim();
     }
 }
