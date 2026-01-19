@@ -3,25 +3,39 @@ using Newtonsoft.Json.Linq;
 
 namespace UnityEssentials
 {
-    public sealed class SettingsProfile : SettingsProfile<SerializedDictionary<string, JToken>>
+    public sealed class SettingsProfile : SettingsProfile<SettingsProfileBase>
     {
-        public SettingsProfile(string profileName) : base(profileName, () => new SerializedDictionary<string, JToken>())
-        {
-        }
+        public SettingsProfile(string profileName) : base(profileName, () => new SettingsProfileBase()) { }
         
-        public SerializedDictionary<string, JToken> GetOrLoad() =>
-            base.GetOrLoad();
+        public new SettingsProfileBase GetOrLoad() =>
+            base.GetValue(markDirty: false, notify: false);
+        
+        public new SettingsProfileBase Load() =>
+            base.Load();
     }
-        
+
     public class SettingsProfile<T> where T : new()
     {
         public string ProfileName { get; }
-        public T Value => _value;
+
+        /// <summary>
+        /// Read access. Ensures the profile is loaded.
+        /// For reference types, do not mutate the returned object unless the type raises its own change events
+        /// (e.g. SerializedDictionary). For typed settings objects, use <see cref="GetValue"/> for write-intent.
+        /// </summary>
+        public T Value
+        {
+            get
+            {
+                if (!_loaded) Load();
+                return _value;
+            }
+        }
+
         public bool IsLoaded => _loaded;
         public bool IsDirty => _dirty;
 
-        public event Action<T> Changed;
-        public event Action<string> OnValueChanged;
+        public event Action<T> OnChanged;
 
         private readonly Func<T> _defaultsFactory;
         private readonly string _path;
@@ -37,11 +51,23 @@ namespace UnityEssentials
             _path = SettingsPath.GetPath<T>(ProfileName);
         }
 
-        public T GetOrLoad() =>
-            _loaded ? _value : Load();
+        /// <summary>
+        /// Write-intent access.
+        /// This is the preferred API for typed settings objects (e.g. GraphicsSettings) where changes cannot be detected.
+        /// </summary>
+        public T GetValue(bool markDirty = true, bool notify = true)
+        {
+            if (!_loaded) Load();
+            if (markDirty) _dirty = true;
+            if (notify) OnChanged?.Invoke(_value);
+            return _value;
+        }
 
         public T Load()
         {
+            // Unsubscribe old change hooks (in case Load is called after DeleteFile or manual reloads).
+            UnhookChangeNotifications(_value);
+
             _value = _defaultsFactory();
             ApplyValidationAndMigration(_value, null);
 
@@ -77,35 +103,22 @@ namespace UnityEssentials
 
             _loaded = true;
             _dirty = dirty;
-            
+
+            // If the underlying value supports fine-grained change events (e.g. SerializedDictionary),
+            // hook them up so IsDirty/Changed stays correct even when callers only use Value.
+            HookChangeNotifications(_value);
+
             return _value;
-        }
-
-        public void Set(T newValue, bool markDirty = true, bool notify = true)
-        {
-            _value = newValue;
-            _loaded = true;
-            if (markDirty) _dirty = true;
-            if (notify) Changed?.Invoke(_value);
-        }
-
-        public void Mutate(Action<T> edit, bool notify = true)
-        {
-            var v = GetOrLoad();
-            edit?.Invoke(v);
-            ApplyValidationAndMigration(v, null);
-            _dirty = true;
-            if (notify) Changed?.Invoke(_value);
         }
 
         public void SaveIfDirty()
         {
             if (_dirty) Save();
         }
-        
+
         public void Save()
         {
-            var v = GetOrLoad();
+            var v = Value; // ensure loaded
             ApplyValidationAndMigration(v, null);
 
             var schema = (v is ISettingsVersioned sv) ? sv.SchemaVersion : 0;
@@ -116,19 +129,27 @@ namespace UnityEssentials
             _dirty = false;
         }
 
-        public void ResetToDefaults(bool save = false)
+        public void ResetToDefaults(bool save = false, bool notify = true)
         {
+            UnhookChangeNotifications(_value);
+
             _value = _defaultsFactory();
             ApplyValidationAndMigration(_value, null);
             _loaded = true;
             _dirty = true;
-            Changed?.Invoke(_value);
+
+            HookChangeNotifications(_value);
+
+            if (notify)
+                OnChanged?.Invoke(_value);
+
             if (save) Save();
         }
 
         public void DeleteFile()
         {
             SettingsJsonStore.Delete(_path);
+            UnhookChangeNotifications(_value);
             _loaded = false;
             _dirty = false;
         }
@@ -141,6 +162,24 @@ namespace UnityEssentials
 
             if (v is ISettingsValidate val)
                 val.Validate();
+        }
+
+        private void HookChangeNotifications(T v)
+        {
+            if (v is SerializedDictionary<string, JToken> dict)
+                dict.OnValueChanged += HandleDictionaryValueChanged;
+        }
+
+        private void UnhookChangeNotifications(T v)
+        {
+            if (v is SerializedDictionary<string, JToken> dict)
+                dict.OnValueChanged -= HandleDictionaryValueChanged;
+        }
+
+        private void HandleDictionaryValueChanged(string _)
+        {
+            _dirty = true;
+            OnChanged?.Invoke(_value);
         }
     }
 }

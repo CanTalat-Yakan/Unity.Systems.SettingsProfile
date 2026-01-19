@@ -1,60 +1,96 @@
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
 
 namespace UnityEssentials
 {
     /// <summary>
-    /// Tiny helper to manage multiple named <see cref="SettingsProfile{T}"/> instances and a current selection.
-    /// UI, gameplay systems, tools, etc. can all reuse this without taking a dependency on any menu/UI code.
+    /// Tiny helper to manage multiple named <see cref="SettingsProfile"/> instances and a current selection.
     /// </summary>
-    public sealed class SettingsProfileManager : SettingsProfileManager<SerializedDictionary<string, JToken>>
+    public sealed class SettingsProfileManager
     {
-        public SettingsProfileManager(string profileName) : base(profileName, () => new SerializedDictionary<string, JToken>())
-        {
-        }
-        
-        public SettingsProfile GetProfile(string profileName) =>
-            base.GetProfile(profileName) as SettingsProfile;
-        
-        public SettingsProfile GetCurrentProfile() =>
-            base.GetCurrentProfile() as SettingsProfile;
+        private readonly SettingsProfileManagerBase<SettingsProfile> _base;
+
+        public string CurrentProfileName => _base.CurrentProfileName;
+
+        public SettingsProfileManager(string profileName) =>
+            _base = new SettingsProfileManagerBase<SettingsProfile>(profileName, name => new SettingsProfile(name));
+
+        public SettingsProfile GetProfile(string profileName) => 
+            _base.GetProfile(profileName);
+
+        public SettingsProfile GetCurrentProfile() => 
+            _base.GetCurrentProfile();
+
+        public void SetCurrentProfile(string profileName, bool loadIfNeeded = true) =>
+            _base.SetCurrentProfile(
+                profileName,
+                loadIfNeeded,
+                p => p.GetOrLoad());
     }
 
-    public class SettingsProfileManager<T> where T : new()
+    /// <summary>
+    /// Tiny helper to manage multiple named <see cref="SettingsProfile{T}"/> instances and a current selection.
+    /// </summary>
+    public sealed class SettingsProfileManager<T> where T : new()
     {
-        public string CurrentProfileName { get; private set; }
-
+        private readonly SettingsProfileManagerBase<SettingsProfile<T>> _base;
         private readonly Func<T> _defaultsFactory;
-        private readonly Dictionary<string, SettingsProfile<T>> _profiles = new();
+
+        public string CurrentProfileName => _base.CurrentProfileName;
 
         public SettingsProfileManager(string profileName, Func<T> defaultsFactory = null)
         {
-            profileName = string.IsNullOrWhiteSpace(profileName) ? "Default" : profileName.Trim();
-            CurrentProfileName = Sanitize(profileName);
             _defaultsFactory = defaultsFactory ?? (() => new T());
+            _base = new SettingsProfileManagerBase<SettingsProfile<T>>(profileName, name => new SettingsProfile<T>(name, _defaultsFactory));
         }
 
-        public SettingsProfile<T> GetProfile(string profileName)
+        public SettingsProfile<T> GetProfile(string profileName) => 
+            _base.GetProfile(profileName);
+
+        public SettingsProfile<T> GetCurrentProfile() => 
+            _base.GetCurrentProfile();
+
+        public void SetCurrentProfile(string profileName, bool loadIfNeeded = true) =>
+            _base.SetCurrentProfile(
+                profileName,
+                loadIfNeeded,
+                p => p.GetValue());
+    }
+    
+    internal sealed class SettingsProfileManagerBase<TProfile>
+    {
+        public string CurrentProfileName { get; private set; }
+
+        private readonly Dictionary<string, TProfile> _profiles = new();
+        private readonly Func<string, TProfile> _createProfile;
+
+        public SettingsProfileManagerBase(string profileName, Func<string, TProfile> createProfile)
+        {
+            _createProfile = createProfile ?? throw new ArgumentNullException(nameof(createProfile));
+            CurrentProfileName = Sanitize(profileName);
+        }
+
+        public TProfile GetProfile(string profileName)
         {
             var name = Sanitize(profileName);
 
             if (_profiles.TryGetValue(name, out var existing))
                 return existing;
 
-            var created = new SettingsProfile<T>(name, _defaultsFactory);
+            var created = _createProfile(name);
             _profiles[name] = created;
             return created;
         }
 
-        public SettingsProfile<T> GetCurrentProfile() =>
+        public TProfile GetCurrentProfile() => 
             GetProfile(CurrentProfileName);
 
-        public void SetCurrentProfile(string profileName, bool loadIfNeeded = true)
+        public void SetCurrentProfile(string profileName, bool loadIfNeeded, Action<TProfile> loadIfNeededAction)
         {
             CurrentProfileName = Sanitize(profileName);
+
             if (loadIfNeeded)
-                GetCurrentProfile().GetOrLoad();
+                loadIfNeededAction?.Invoke(GetCurrentProfile());
         }
 
         private static string Sanitize(string name) =>

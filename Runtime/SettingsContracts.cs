@@ -1,7 +1,10 @@
+using Newtonsoft.Json;
+
 namespace UnityEssentials
 {
     public interface ISettingsVersioned
     {
+        [JsonIgnore]
         public int SchemaVersion { get; }
     }
 

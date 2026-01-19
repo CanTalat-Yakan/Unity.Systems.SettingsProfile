@@ -11,19 +11,19 @@ namespace UnityEssentials.Samples
         public static readonly SettingsProfileManager<GraphicsSettings> GraphicsManager =
             SettingsProfileFactory.CreateManager("GraphicsManager", () => new GraphicsSettings());
 
-        public static readonly SettingsProfile GraphicsKvp =
-            SettingsProfileFactory.Create("GraphicsKvp");
+        public static readonly SettingsProfile GraphicsDict =
+            SettingsProfileFactory.Create("GraphicsDict");
 
-        public static readonly SettingsProfileManager GraphicsKvpManager =
-            SettingsProfileFactory.CreateManager("GraphicsKvpManager");
+        public static readonly SettingsProfileManager GraphicsDictManager =
+            SettingsProfileFactory.CreateManager("GraphicsDictManager");
 
         private void Awake()
         {
             UseGlobalSettingsService();
             UseTypedProfile();
             UseTypedProfileManager();
-            UseKeyValueProfile();
-            UseKeyValueProfileManager();
+            UseValueProfile();
+            UseValueProfileManager();
         }
 
         private static void UseGlobalSettingsService()
@@ -34,47 +34,48 @@ namespace UnityEssentials.Samples
 
         private static void UseTypedProfile()
         {
-            Apply(Graphics.GetOrLoad());
-            Graphics.Changed += Apply;
-            GraphicsManager.GetCurrentProfile().Changed += Apply;
+            Apply(Graphics.Value);
+            
+            Graphics.OnChanged += Apply;
         }
 
         private static void UseTypedProfileManager()
         {
-            // Same idea as the KV manager, but managing typed settings objects.
             GraphicsManager.SetCurrentProfile("Player2", loadIfNeeded: true);
-
-            var current = GraphicsManager.GetCurrentProfile();
-            var g = current.GetOrLoad();
-
-            // Make a tiny, visible mutation to show the pattern.
-            current.Mutate(s => s.msaa = g.msaa, notify: false);
+            var profile = GraphicsManager.GetCurrentProfile();
+            
+            var msaa = profile.Value.msaa;
+            profile.GetValue().msaa = msaa; 
+            
+            profile.OnChanged += Apply;
         }
 
-        private static void UseKeyValueProfile()
+        private static void UseValueProfile()
         {
-            var kv = GraphicsKvp.GetOrLoad();
+            var profile = GraphicsDict;
 
-            var windowMode = kv.GetInt("window_mode", 3);
-            var vSync = kv.GetBool("v-sync");
-            var masterVolume = kv.GetFloat("master_volume", 100f);
+            var windowMode = profile.Value.Get("window_mode", 3);
+            var vSync = profile.Value.Get("v-sync", false);
+            var masterVolume = profile.Value.Get("master_volume", 100f);
 
-            GraphicsKvp.Mutate(s =>
-            {
-                s.SetInt("window_mode", windowMode);
-                s.SetBool("v-sync", vSync);
-                s.SetFloat("master_volume", masterVolume);
-            }, notify: false);
+            profile.Value.SetInt("window_mode", windowMode);
+            profile.Value.SetBool("v-sync", vSync);
+            profile.Value.SetFloat("master_volume", masterVolume);
+
+            var key = "window_mode";
+            profile.Value.OnValueChanged += (key) => ApplyWindowMode(profile.Value.Get(key, 0));
         }
 
-        private static void UseKeyValueProfileManager()
+        private static void UseValueProfileManager()
         {
-            // This is a "service-like" pattern for multiple named profiles ("Default", "Player2", etc.).
-            GraphicsKvpManager.SetCurrentProfile("Player2", loadIfNeeded: true);
-
-            var current = GraphicsKvpManager.GetCurrentProfile();
-            var p2Volume = current.GetOrLoad().GetFloat("master_volume", 80f);
-            current.Mutate(s => s.SetFloat("master_volume", p2Volume), notify: false);
+            GraphicsDictManager.SetCurrentProfile("Player2", loadIfNeeded: true);
+            var profile = GraphicsDictManager.GetCurrentProfile();
+            
+            var volume = profile.Value.GetFloat("master_volume", 80f);
+            profile.Value.SetFloat("master_volume", volume);
+            
+            var key = "window_mode";
+            profile.Value.OnValueChanged += (key) => ApplyWindowMode(profile.Value.Get(key, 0));
         }
 
         private void OnApplicationQuit()
@@ -82,13 +83,18 @@ namespace UnityEssentials.Samples
             SettingsService.Save();
             Graphics.SaveIfDirty();
             GraphicsManager?.GetCurrentProfile().SaveIfDirty();
-            GraphicsKvp.SaveIfDirty();
-            GraphicsKvpManager?.GetCurrentProfile().SaveIfDirty();
+            GraphicsDict.SaveIfDirty();
+            GraphicsDictManager?.GetCurrentProfile().SaveIfDirty();
         }
 
         private static void Apply(GraphicsSettings g)
         {
             QualitySettings.antiAliasing = g.msaa;
+        }
+        
+        private static void ApplyWindowMode(int mode)
+        {
+            // Apply window mode logic here
         }
     }
 
