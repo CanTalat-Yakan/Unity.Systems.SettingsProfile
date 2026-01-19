@@ -32,7 +32,8 @@ namespace UnityEssentials
             return created;
         }
 
-        public SettingsProfile<T> GetCurrentProfile() => GetProfile(CurrentProfileName);
+        public SettingsProfile<T> GetCurrentProfile() => 
+            GetProfile(CurrentProfileName);
 
         public void SetCurrentProfile(string profileName, bool loadIfNeeded = true)
         {
@@ -41,9 +42,7 @@ namespace UnityEssentials
                 GetCurrentProfile().GetOrLoad();
         }
 
-        private static string Sanitize(string name)
-        {
-            return string.IsNullOrWhiteSpace(name) ? "Default" : name.Trim();
-        }
+        private static string Sanitize(string name) =>
+            string.IsNullOrWhiteSpace(name) ? "Default" : name.Trim();
     }
 }

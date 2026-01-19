@@ -17,16 +17,11 @@ namespace UnityEssentials
         /// Ensures settings are loaded before the first scene.
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void InitializeOnLoad()
-        {
-            // Trigger creation + load. We don't auto-save here to avoid writing during startup.
+        private static void InitializeOnLoad() =>
             _ = Profile.GetOrLoad();
-        }
 
-        public static void SetProfile(string profileName)
-        {
+        public static void SetProfile(string profileName) =>
             _profile = CreateAndLoad(profileName);
-        }
 
         public static bool HasKey(string key) => Profile.GetOrLoad().HasKey(key);
         public static void DeleteKey(string key) { Profile.Mutate(s => s.DeleteKey(key)); }
@@ -46,12 +41,9 @@ namespace UnityEssentials
 
         public static void Set<T>(string key, T value) => Profile.Mutate(s => s.Set(key, value));
 
-        /// <summary>Explicit save to disk (like PlayerPrefs.Save()).</summary>
-        public static void Save()
-        {
-            if (_profile == null) return;
-            _profile.Save();
-        }
+        /// <summary>Explicit save to disk</summary>
+        public static void Save() =>
+            _profile?.Save();
 
         private static SettingsProfile<KeyValuePair> CreateAndLoad(string profileName)
         {

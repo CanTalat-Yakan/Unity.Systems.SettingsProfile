@@ -26,7 +26,6 @@ namespace UnityEssentials.Samples
             UseKeyValueProfileManager();
         }
 
-        // Global key/value sample (SettingsService)
         private static void UseGlobalSettingsService()
         {
             var windowModeGlobal = SettingsService.GetInt("window_mode", 3);

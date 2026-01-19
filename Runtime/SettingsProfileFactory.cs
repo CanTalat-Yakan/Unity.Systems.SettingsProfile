@@ -11,9 +11,7 @@ namespace UnityEssentials
     /// </summary>
     public static class SettingsProfileFactory
     {
-        public static SettingsProfile<KeyValuePair> Create(
-            string profileName = "Default",
-            Func<KeyValuePair> defaultsFactory = null) =>
+        public static SettingsProfile<KeyValuePair> Create(string profileName = "Default", Func<KeyValuePair> defaultsFactory = null) =>
             new(profileName, defaultsFactory ?? (() => new KeyValuePair()));
 
         public static SettingsProfile<T> Create<T>(string profileName, Func<T> defaultsFactory = null) where T : new() =>
