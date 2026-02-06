@@ -1,20 +1,26 @@
 {
-  "name": "com.unityessentials.settingsprofile",
-  "version": "1.0.0",
-  "displayName": "Unity Systems SettingsProfile",
+  "name": "com.unityessentials.systems.settingsprofile",
+  "version": "2.0.0",
+  "displayName": "Systems SettingsProfile",
   "description": "This is a part of the UnityEssentials Ecosystem",
   "unity": "6000.0",
-  "unityRelease": null,
+  "unityRelease": "",
   "dependencies": {},
   "keywords": [],
   "author": {
     "name": "Unity Essentials",
-    "email": null,
-    "url": null
+    "email": "",
+    "url": ""
   },
-  "documentationUrl": null,
-  "changelogUrl": null,
-  "licensesUrl": null,
-  "samples": [],
+  "documentationUrl": "",
+  "changelogUrl": "",
+  "licensesUrl": "",
+  "samples": [
+    {
+      "displayName": "Example Settings Profile",
+      "description": "An example profile showing loading, gettings and setting data from profiles.",
+      "path": "Samples~/"
+    }
+  ],
   "hideInEditor": true
 }
